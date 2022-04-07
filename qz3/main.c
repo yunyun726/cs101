@@ -13,7 +13,7 @@ void rec_dec(char* s) {
 void hanoi(int n, char A, char B, char C) {
     if(n) {
         hanoi(n-1, A, C, B);
-        printf("Move disk %d from %c to %c\n", n, A, C);
+        fprintf(hanoii,"Move disk %d from %c to %c\n", n, A, C);
         hanoi(n-1, B, A, C);
     }
 }
@@ -41,7 +41,7 @@ int main() {
     char s[]="1234567890";
     rec_dec(s);
     printf("func#1-----------------------\n");
-    hanoi_tower(3);
+    hanoi_tower(16);
     printf("func#2-----------------------\n");
     multiplication(1,1);
     printf("func#3-----------------------\n");
