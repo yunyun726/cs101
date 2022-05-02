@@ -1,164 +1,176 @@
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include<stdio.h>
+#include<stdlib.h> 
+#include<time.h>
 #include <string.h>
 
-FILE* fp;
-FILE* binfile;
-FILE* records;
-//FILE* operator_id;
-static int currentcount;
+//variables setting
+FILE* lottoFile;
+FILE* countFile;
+FILE* operatorFile;
+FILE* salesRecordFile; 
+static int currentCount;
+static int id, idArr[1];
+static char name[32];
+static char date[32];
+static char Time[32];
 
-void count() {
+typedef struct lottoRecord{
+	int lotto_no;//= currentCount
+	int lotto_receipt;//= currentCount *55
+	int emp_id;//= id
+	char lotto_date[32];//= date
+	char lotto_time[32];//= Time
+}lotto_record_t; 
+
+typedef struct employeeRecord{
+	int emp_id;
+	char emp_name[32];
+	int emp_salary;
+}emp_record_t;
+
+
+//functions 
+void recordTheEmployee(int salary){
+	emp_record_t recordEmployee;
+	recordEmployee.emp_id = id;
+	strcpy(recordEmployee.emp_name, name);
+	recordEmployee.emp_salary = salary;
+	
+	operatorFile = fopen("operator_id.txt","ab");
+	fwrite(&recordEmployee, sizeof(recordEmployee), 1, operatorFile);
+	fclose(operatorFile);
+}
+
+void cutTheTime(){ //cut the time to date&time
+	time_t now = time(0);
+	strftime(date, 100, "%Y%m%d", localtime(&now));
+	strftime(Time, 100, "%H:%M:%S", localtime(&now));
+}
+
+void setAndOutputRecords(){
+	lotto_record_t doRecord;
+	doRecord.lotto_no = currentCount;
+	doRecord.lotto_receipt = currentCount*55;
+	doRecord.emp_id = id;
+	strcpy(doRecord.lotto_date, date);
+	strcpy(doRecord.lotto_time, Time);
+
+	salesRecordFile = fopen("salesRecordFile.bin","ab");
+	fwrite(&doRecord, sizeof(doRecord), 1, salesRecordFile);
+	fclose(salesRecordFile);
+}
+
+
+
+void countTimes(){ //count the total times of buying
     int read[1];
-    int write[1];
-    if((binfile = fopen("binfile.bin", "r")) == NULL) { //讀現在binfile.txt 裡面現在是不是空的
-        binfile = fopen("binfile.bin", "wb+"); // 如果是空的 就 開起編輯 讓他變1
-        write[0] = 1;
-        fwrite(write, sizeof(int), 1, binfile);
-    } else {
-        binfile = fopen("binfile.bin", "rb+"); // 其他狀況 打開binfile.txt 
-        fseek(binfile, 0, SEEK_SET); // 從一開始開始
-        fread(read, sizeof(int), 1, binfile); //讀一次
-        fclose(binfile); // 關掉
-        write[0] = read[0] + 1; //讓write 陣列第一個數為 剛剛讀到的數字 +1
-        binfile = fopen("binfile.bin","wb+");
-        fwrite(write, sizeof(int), 1, binfile);
+    int write[1];    
+    if((countFile = fopen("countFile.bin", "r")) == NULL){
+        countFile = fopen("countFile.bin", "wb+");
+        write[0] = 1;       
+        fwrite(write, sizeof(int), 1, countFile);
     }
-    fclose(binfile);
-    currentcount = write[0];
-}
+    else{
+        countFile = fopen("countFile.bin", "rb+");
+        fseek(countFile, 0, SEEK_SET);
+        fread(read, sizeof(int), 1, countFile);
+        fclose(countFile);    
+        write[0] = read[0] + 1;
+        countFile = fopen("countFile.bin", "wb+");
+        fwrite(write, sizeof(int), 1, countFile);
+    }
+    fclose(countFile);
+    currentCount = write[0];
+}  
 
-
-void print_num(int ran,int i,FILE* fp) {
-    int lotto[6] = {0};
-    int special,num;
-    ran+=i; //因為執行時間太短 所以要加 i
-    fprintf(fp,"[%d]:",i);
-    for (int k = 0; k < 6; k++) {
-        num = rand()%69+1; // +1是因為從1開始
-        lotto[k] = num;
-        for (int m = 0; m<k; m++) {
-            if (lotto[k]==lotto[m]) {
-                k-=1;
-                break; // 如果數字重複了 就讓他回去重跑
-            }
+void get_6_RandNum(){ //get the random number for lottery
+    int r[12];
+    int i = 0, j, box;
+    while(i<=5){
+        box = rand()%69+1;
+        for(j = 0; j < i; j++){
+            if(box == r[j])break;
+        }
+        if(j == i){
+            r[i] = box;
+            i++;
         }
     }
-    for (int a = 0; a<5; a++) {
-        for (int b = a+1; b<6; b++) {
-            if (lotto[a] > lotto[b]) {
-                int temp;
-                temp = lotto[a];
-                lotto[a] = lotto[b];
-                lotto[b] = temp; // 排序
-            }
-        }
+    for (int a = 0; a < 6; ++a) {
+        for (int b = 0; b < a; ++b) {
+              if (r[b] > r[a]) {
+            int temp = r[b];
+            r[b] = r[a];
+            r[a] = temp;
+            }    
+           }
     }
-    for (int k = 0; k<6; k++) fprintf(fp,"%02d ",lotto[k]);
-    special = rand()%10+1;
-    fprintf(fp,"%02d \n",special);
+    r[6] = rand()%10+1;//special number
+    for(j = 0; j <= 6; j++){
+        fprintf(lottoFile,"%02d ",r[j]);
+    }
 }
 
-void print_none(int i,FILE* fp) {
-    fprintf(fp,"[%d]:",i);
-    for (int k=1;k<=7;k++) fprintf(fp,"-- ");
-    fprintf(fp,"\n");
-}
-
-
-int main() {
-    FILE* operator_id;
-    int n,b,ran,m,q;
-    char name[128];
-
-    printf("歡迎光臨長庚樂透彩購買機台\n");
-    printf("請輸入操作人員ID：");
-    scanf("%d",&b);
-
-    int currentuser[80];
-    char currentname[80];
-    int arr_write[99999] = {0};
-    int arr_read[99999];
-    count();
-    
-    typedef struct employee {
-        int emp_id;
-        char emp_name[128];
-        int emp_salary;
-    } emp_record;
-    
-    if (b == 0) {
-        printf("請輸入要新增操作人員 ID (1-99)：");
-        scanf("%d",&m);
-        printf("請輸入要新增操作人員 Name：");
+//mainfunction
+int main(){
+	
+    //UI
+    int a,i;
+    char lottoFileName[80];
+    printf("welcome to the lottery machine(?)\n");
+    printf("please input the operator ID:");
+    scanf("%d",&id);
+	
+    //check if Id = 0
+    if(id == 0){
+	//set variable
+        int salary;
+	//UI
+        printf("please input the ID you want to add:");
+        scanf("%d",&id);
+        printf("please input the NAME you want to add:");
         scanf("%s",name);
-        printf("請輸入要新增操作人員 Salary：");
-        scanf("%d",&q);
-        printf("輸入完成");
-        emp_record emp_record_t;
-        emp_record_t.emp_id = m;
-        strcpy( emp_record_t.emp_name, name ); //不用 & 是因為
-        emp_record_t.emp_salary = q;
-        operator_id = fopen("operator_id.bin","ab");
-        fwrite(&emp_record_t, sizeof(int), 1, operator_id);
-        fclose(operator_id);
+        printf("please input the salary you want to add:");
+        scanf("%d",&salary);
+        recordTheEmployee(salary);
+        printf("end the input");	
+    }
+	
+    else if(id != 0){
         
-    } else {
-    printf("請問您要購買幾組樂透彩：");
-    scanf("%d",&n);
-    fp = fopen("operator_id.bin","wb+");
-    fwrite(currentname, sizeof(int), 1, fp);
-    
-    sprintf(currentname, "lotto[%04d].txt",currentcount);
-    //fp = fopen("lotto.txt","w+");
-    fp = fopen(currentname,"w+");
-    fprintf(fp,"========= lotto649 =========\n");
-    //fclose(fp);
-    
-    
-    time_t curtime;
-    time(&curtime);
-    char* dte=ctime(&curtime);
-    size_t len = strlen(dte);
-    dte[len-1]='\0'; // 因為time最後會自動換行所以要把它改為結束位元
-    fprintf(fp,"= %s =\n",dte);
-    fprintf(fp,"========+ No.%05d +========\n",currentcount);
-    srand((unsigned)time(NULL));
-    ran = rand();
-    for (int i=1;i<=5;i++) {
-        if (i<=n) print_num(ran,i,fp);
-        else print_none(i,fp);
+    printf("歡迎光臨長庚樂透彩購買機台\n");
+    printf("請問你要買幾組樂透彩：");
+        
+	scanf("%d", &i);
+	printf("\n已為你購買的 %d 組樂透彩輸出至lotto.txt\n", i);
+	
+        //open&set the lotto file
+	srand(time(NULL));
+	countTimes();
+	sprintf(lottoFileName, "lotto[%04d].txt", currentCount);
+	lottoFile = fopen(lottoFileName,"w+");
+	//remove the "enter" from time
+	time_t now;
+	time(&now);
+	char* dt = ctime(&now);
+	dt[strlen(dt)-1]=0;
+	//print the words
+	fprintf(lottoFile,"========= lotto649 =========\n");
+	fprintf(lottoFile,"========+ No.%05d +========\n",currentCount);
+	fprintf(lottoFile,"= %s =\n", dt);
+	for(a = 1; a <= i; a++){
+	    fprintf(lottoFile,"= [%d]:", a);
+	    get_6_RandNum();
+	    fprintf(lottoFile,"=\n");
+	}
+	for(; a <= 5; a++)fprintf(lottoFile,"= [%d]:== == == == == == == =\n", a);
+	fprintf(lottoFile, "========* Op.%05d *========\n", id);
+	fprintf(lottoFile,"========= csie@CGU =========\n");
+	fclose(lottoFile);
+	 
+	//call functions
+	cutTheTime();
+	setAndOutputRecords();
     }
-    fprintf(fp,"========* Op.%05d *========\n",b);
-    fprintf(fp,"========= csie@CGU =========");
-    fclose(fp);
-    printf("已為您購買的 %d 組樂透組合輸出至 lotto.txt",n);
-    
-    typedef struct lotto {
-        int lotto_no;
-        int lotto_retceipt;
-        int emp_id;
-        char lotto_date[128];
-        char lotto_time[128];
-    } lotto_record;
-    char date[32];
-    char ttime[32];
-    time_t now = time(0);
-    strftime (date, 32, "%Y%m%d", localtime(&now));
-    strftime (ttime, 32, "%H:%M:%S", localtime(&now));
-    lotto_record lotto_record_t;
-    lotto_record_t.lotto_no = currentcount;
-    lotto_record_t.lotto_retceipt = n*50*1.1;
-    lotto_record_t.emp_id = b;
-    strcpy(lotto_record_t.lotto_date, date);
-    strcpy(lotto_record_t.lotto_time, ttime);
-    records = fopen ("records.bin","ab");
-    fwrite(&lotto_record_t, sizeof(int), 1, records); //& 是因為記憶體位置
-    fclose(records);
-    
-    }
-    
-    return 0;
 }
