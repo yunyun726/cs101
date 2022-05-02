@@ -1,71 +1,90 @@
-#include<stdio.h>
-#include<stdlib.h> 
-#include<time.h>
+#include <stdio.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <string.h>
 
-FILE* report;
-FILE* record;
-static char date[64];
+static int number, idnum;
+static int n, number, id, salary;
+static char date[32];
 
-typedef struct lotto {
+FILE *record_bin;
+FILE *report_txt;
+
+typedef struct lotto_record {
     int lotto_no;
     int lotto_receipt;
     int emp_id;
-    char lotto_date[128];
-    char lotto_time[128];
-} lotto_record;
+    char lotto_date[16];
+}lotto_record_t;
 
-void cuttime(){ 
-	time_t now = time(0);
-	strftime(date, 100, "%Y%m%d", localtime(&now));
+typedef struct stat {
+    int lotto_counter;
+    int lotto_numset;
+    int lotto_receipt;
+    char lotto_date[16];
+} stat_t;
+
+void timeset() {
+    time_t now = time(0);
+    strftime(date, 32, "%Y%m%d",localtime(&now));
+}
+
+int check_date_in_table(lotto_record_t tmp, stat_t stat_table[], int TSIZE) {
+    int i = -1;
+    for(i = 0; i<TSIZE; i++) {
+        if(strcmp(tmp.lotto_date, stat_table[i].lotto_date) == 0) {
+            break;
+        }
+        if(i >= TSIZE) {
+            return -1;
+        }
+        return i;
+    }
+}
+
+void record_txtset(stat_t stat_table[], int TSIZE) {
+    int total= 0;
+    int total_num = 0, total_numset = 0, total_receipt = 0, groupsum = 0;
+    FILE* report_txt = fopen ("report.txt","w+");
+    fprintf(report_txt,"========= lotto 649 Report ========\n");
+    fprintf(report_txt,"- Date ------ Num. ------ Receipt -\n");
+    
+    for(int i = 0; i< TSIZE;i++) {
+        fprintf(report_txt, "%s\t\t%d/%d\t\t\t%d\n",stat_table[i].lotto_date,
+        stat_table[i].lotto_counter, stat_table[i].lotto_numset, stat_table[i].lotto_receipt);
+    
+    total++;
+    total_num += stat_table[i].lotto_counter;
+    total_numset += stat_table[i].lotto_receipt;    
+    }
+    
+    fprintf(report_txt,"--------------------------------------\n");
+    fprintf(report_txt,"%d\t\t\t\t%d/%d\t\t%d\n",total,total_num,total_numset,total_receipt);
+    timeset();
+    fprintf(report_txt,"======== %s Printed =========", date);
+    fclose(report_txt);
+    
 }
 
 int main() {
-    
-    report = fopen ("report.txt","w+");
-    record = fopen("record.bin","r");
-    lotto_record tmp[256];
-    int i = 0;
-    while(fread(&tmp[i], sizeof(lotto_record), 1, record)){
-		i++;
-	}	
-	i-=1; // 因為剛剛會多加一個
-
-    int no = 0; 
-	int datesum = 0, nosum, setsum = 0, receiptsum = 0;
-	int j = 0;
-	
-	fprintf(report,"========= lotto649 Report =========\n");
-    fprintf(report,"- Date ------ Num. ------Receipt -\n");
-    
-    while(j<=i){
-		int set = 0; //組數
-		int receipt = 0;
-		while(strcmp(tmp[j].lotto_date,tmp[j+1].lotto_date) == 0){ //字串比對 如果相同 =0
-			set = set + (tmp[j].lotto_receipt/55);
-			receipt = receipt + tmp[j].lotto_receipt;
-			j++;
-		}
-		set = set + (tmp[j].lotto_receipt/55);
-		receipt = receipt + tmp[j].lotto_receipt;
-		no = tmp[j].lotto_no - no;
-		datesum ++;
-		printf("%d",no);
-		setsum = setsum + set;
-		receiptsum = receiptsum + receipt;
-		fprintf(report, "%s\t%d/%d\t\t%d\n", tmp[j].lotto_date, no, set, receipt);
-		no = tmp[j].lotto_no;
-		j++;
+    const int TSIZE = 128;
+    lotto_record_t tmp;
+    int table_index = 0;
+    int date_index = -1;
+    stat_t stat_table[128] = {0};
+    FILE* record_bin = fopen("record.bin","rb");
+    while (fread(&tmp,sizeof(lotto_record_t),1,record_bin)) {
+        if((date_index = check_date_in_table(tmp , stat_table, 128)) <0) {
+        date_index = number++;
+        strcpy(stat_table[date_index].lotto_date, tmp.lotto_date);
+        }
+        stat_table[date_index].lotto_counter++;
+        stat_table[date_index].lotto_receipt += tmp.lotto_receipt;
+        stat_table[date_index].lotto_numset += (tmp.lotto_receipt/55);;
     }
-	
-    fprintf(report,"-----------------------------------\n");
-    fprintf(report,"\t%d\t%d/%d\t\t%d\n", datesum, tmp[i].lotto_no, setsum, receiptsum);
-    cuttime();
-    fprintf(report,"======== %s Printed =========", date);
+    fclose(record_bin);
+    record_txtset(stat_table, table_index);
     
-
-    fclose(report);
-    fclose(record);
-
     return 0;
 }
