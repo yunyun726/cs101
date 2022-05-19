@@ -2,8 +2,9 @@
 #include <stdio.h>
 
 int do_before_adding(int* i) {
+   int num = *i;
     *i += 1;
-    return *i-1;
+    return num;
 }
 
 int do_after_adding(int* i) {
