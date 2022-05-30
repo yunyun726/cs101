@@ -1,76 +1,88 @@
 #include <iostream>
+
 using namespace std;
 
-class MMmanger{
-    private:
-        int num_of_space;
-        int* g_mm;
-        int** calloced_p;
-    public:
-        MMmanger(int size){
-            num_of_space = size;
-            g_mm = (int*)malloc(num_of_space * sizeof(int));
-            calloced_p = (int**)malloc(num_of_space * sizeof(int*));
-            for(int i = 0; i < size; i++){
-                calloced_p[i] = 0;
-            }
-        }
-        ~MMmanger(){
-            free(g_mm);
-            free(calloced_p);
-        }
-        int get_MMCapacity(){
-            int num_of_unallocated_space = 0;
-            for(int i = 0; i < num_of_space; i++) {
-                if(!calloced_p[i]) {
-                    num_of_unallocated_space++;
-                }
-            }
-            return num_of_unallocated_space;
-        }
-        void print_calloc_array(int flag, int size){
-            cout << "Capacity:" << get_MMCapacity() << " - ";
-            for(int i = 0; i < num_of_space; i++){
-                (calloced_p[i])? (cout << "1") : (cout <<"0");
-            }
-            if(!flag){
-                cout << " <- Out of space : demand " << size;
-            }
-            cout << endl;
-        }
-        int* calloc_MM(int size){
-            int index,av_size = 0;
-            for(index = 0; index < num_of_space; index++){
-                // check array[index] is free or not
-                (!calloced_p[index])?(av_size++):(av_size = 0);
-                if(av_size == size){
-                    index -= size-1;
-                    break;
-                }
-            }
-            if(av_size < size){
-                print_calloc_array(0,size);
-                return NULL;
-            }
-            for(int i = 0; i < size; i++){
-                calloced_p[index+i]=&g_mm[index];
-            }
-            print_calloc_array(1,0); 
-            return &g_mm[index];
-        }
-        void free_MM(int* p){
-            for(int i = 0; i < num_of_space; i++){
-                if(calloced_p[i] == p){
-                    calloced_p[i] = NULL;
-                }
-            }
-            print_calloc_array(1,0);
-        }     
+class MMmanger {
+	private:
+		int space;
+		int* g_mm;
+		int** calloced_p;
+	public:
+		MMmanger(int size) {
+			space = size;
+			calloced_p = (int**)malloc(space * sizeof(int*));
+			for(int i = 0; i < space; i++) {
+				calloced_p[i] = 0;
+			}
+			g_mm = (int*) malloc (space * sizeof(int));
+			
+		}
+		
+		int get_MMCapacity() {
+			int non_space = 0;
+			for(int i = 0; i < space; i++) {
+				if(!calloced_p[i]) {
+					non_space++;
+				}
+			}
+			return non_space;
+		}
+		
+		int* calloc_MM(int size) {
+			int av_size = 0;
+			int index;
+			for (index = 0; index < space; index++) {
+        	//check array[index] i sfree or not
+        		(!calloced_p[index]) ?(av_size++): (av_size = 0);
+		        //find
+		        if (av_size == size) {
+		            index -= size-1;
+		            break;
+		        }
+		    }
+		    // can not find the space
+		    if(av_size < size) {
+		        printf_calloc_array(0,size);
+		        return NULL;
+		    }
+		    //alloced these spaces
+		    for(int i = 0; i < size; i++) {
+		        calloced_p[index+i] = &g_mm[index];
+		    }
+		    //print out the mms
+		    printf_calloc_array(1,0);
+		    //return the address of array[index]
+		    return &g_mm[index];
+		} 
+		
+		void free_MM(int* p) {
+		    for(int i = 0; i < space; i++) {
+		        if(calloced_p[i] == p) {
+		            calloced_p[i] = NULL;
+		        }
+		    }
+		    printf_calloc_array(1,0);
+		}
+		
+		~MMmanger() {
+			free(g_mm);
+			free(calloced_p);
+		}
+				
+		void printf_calloc_array(int flag, int size) {
+			cout << "Capacity:" << get_MMCapacity() << " - ";
+		    for(int i = 0;i < space; i++) {
+		        (calloced_p[i])?(cout << "1"):(cout << "0");
+		    }
+		    if(!flag) {
+		        cout << " <-out of space : demand " << size;
+		    }
+		    cout << endl;
+		}
 };
 
-
-int main(){
-    MMmanger mmer(10);
+int main() {
+	MMmanger mmer(10);
     int* p1 = mmer.calloc_MM(1);
     int* p2 = mmer.calloc_MM(2);
     int* p3 = mmer.calloc_MM(3);
@@ -80,3 +92,5 @@ int main(){
     int* p5 = mmer.calloc_MM(6);
     return 0;
 }
+
+
