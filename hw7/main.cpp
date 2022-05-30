@@ -15,7 +15,6 @@ class MMmanger {
 				calloced_p[i] = 0;
 			}
 			g_mm = (int*) malloc (space * sizeof(int));
-			
 		}
 		
 		int get_MMCapacity() {
@@ -92,5 +91,3 @@ int main() {
     int* p5 = mmer.calloc_MM(6);
     return 0;
 }
-
-
